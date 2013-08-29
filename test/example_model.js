@@ -34,6 +34,12 @@ var cb = function() {
     };
 }();
 
+var dw = new db.DB({
+    host     : 'localhost',
+    user     : 'root',
+    password : '',
+    database : 'data_warehouse_dev'
+});
 
 var Model = function() {
     var cls = {
@@ -54,6 +60,7 @@ var Model = function() {
         'name': 'subscription_initiation',
         'idFieldName': 'id',
         'rowClass': Row,
+        /*
         'schema': [
             'id',
             'version',
@@ -64,7 +71,9 @@ var Model = function() {
             'gift_id',
             'init_date',
             'subscription_status'
-        ]
+        ],
+        */
+        'db': dw
     });
 
     $U.extend(cls, {
@@ -75,12 +84,6 @@ var Model = function() {
     return cls;
 }();
 
-var dw = new db.DB({
-    host     : 'localhost',
-    user     : 'root',
-    password : '',
-    database : 'data_warehouse_dev'
-});
 
 var findAndUpdateTest = function(cb) {
     dw.connect(function(conn, cb) {
@@ -105,4 +108,54 @@ var findAndUpdateTest = function(cb) {
     }, cb);
 };
 
-findAndUpdateTest(cb);
+
+var getSampleDto = function() {
+    return {
+        user_id: '1',
+            subscription_id: '1',
+        order_id: '1',
+        product_id: '1',
+        init_date: new Date(),
+        subscription_status: 'inactive'
+    }
+};
+
+var createTest = function(cb) {
+    dw.connect(function(conn, cb) {
+        cps.seq([
+            function(_, cb) {
+                Model.Table.create(conn, getSampleDto(), cb);
+            },
+            function(res, cb) {
+                console.log(res);
+                cb();
+            }
+        ], cb);
+    }, cb);
+};
+
+var txnTest = function(cb) {
+    var conn;
+    dw.connect(function(conn, cb) {
+        dw.transaction(conn, function(conn, cb) {
+            cps.seq([
+                function(_, cb) {
+                    Model.Table.create(conn, getSampleDto(), cb);
+                },
+                function(_, cb) {
+                    dw.transaction(conn, function(conn, cb) {
+                        console.log(conn.__transaction__)
+                        Model.Table.create(conn, getSampleDto(), cb);
+                    }, cb);
+                },
+                function(_, cb) {
+                    throw new Error('foobar');
+                    // cb(null,'ok');
+                }
+            ], cb);
+        }, cb);
+    }, cb);
+};
+
+
+txnTest(cb);

@@ -53,5 +53,9 @@ var basicTest = function(cb) {
     }, cb);
 };
 
+var scehmaTest = function(cb) {
+    box._prepare(cb);
+};
+
 
 basicTest(cb);
