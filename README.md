@@ -35,18 +35,20 @@ var BaseTable = db.Table;
   * [db.connect](#db-connect)
   * [db.transaction](#db-transaction)
   * [db.end](#db-end)
-* Row
-  * [new Row](#new-Row)
-  * [row.update](#row-update)
-  * [row.updateWithoutOptimisticLock](#row-updateWithoutOptmisticLock)
-  * [row.get](#row-get)
-  * [row.getId](#row-getId)
-* Table
+  * [DB.format](#DB-format)
+* Row and Table
+  * [define concrete classes](#row-table-instantiation)
   * [new Table](#new-Table)
   * [table.create](#table-create)
   * [table.find](#table-find)
   * [table.findById](#table-findById)
   * [table.findAll](#table-findAll)
+  * [table.baseQuery](#table-baseQuery)
+  * [new Row](#new-Row)
+  * [row.update](#row-update)
+  * [row.updateWithoutOptimisticLock](#row-updateWithoutOptimisticLock)
+  * [row.get](#row-get)
+  * [row.getId](#row-getId)
 
 <a name="new-DB"/>
 ### new DB(conf)
@@ -151,18 +153,32 @@ var txnTest = function(cb) {
 
 This function destructs the db object.
 
+<a name="DB-format" />
+### DB.format(query_string, variable_bindings)
 
+This is a wrapper of the query string formatting functionality
+provided by the mysql package.  Note that this is a global static
+method defined on the class DB.  It is NOT an instance method defined
+a a DB instance db.
 
-### Row and Table
+__Example__
 
-Both Row and Table are abstract classes.  They must be made concrete before being used.  Here's an example to set up the Row and Table for a particular database table:
+```javascript
+DB.format('select * from users where id = ?' [userId]);
+```
+<a name="row-table-instantiation" />
+### Concrete Classes for Row and Table
+
+Both Row and Table are abstract classes.  They must be made concrete
+before being used.  Here's an example to set up the Row and Table for
+a particular database table:
 
 
 __Example__
 
 ```javascript
 
-var Model = function() {
+var User = function() {
     var cls = {
     };
 
@@ -178,7 +194,7 @@ var Model = function() {
     });
 
     var Table = new TableClass({
-        'name': 'subscription_initiation',
+        'name': 'users',
         'idFieldName': 'id',
         'rowClass': Row,
         'db': dw
@@ -193,47 +209,225 @@ var Model = function() {
 }();
 ```
 
-Here's an example calling APIs on the model:
+<a name="new-Table"/>
+### new Table(table_config)
 
-```javascript
-var findAndUpdateTest = function(cb) {
-    dw.connect(function(conn, cb) {
-        var o;
-        cps.seq([
-            function(_, cb) {
-                var q = Model.Table.baseQuery() + DB.format('limit ?', [1]);
-                Model.Table.find(conn, q, cb);
-            },
-            function(res, cb) {
-                o = res[0];
-                var dto = {
-                    'subscription_status': 'active'
-                };
-                o.update(conn, dto, cb);
-            },
-            function(res, cb) {
-                console.log(res);
-                cb();
-            }
-        ], cb);
-    }, cb);
-};
+The table config schema is defined as follows:
+
+```json
+{
+    "name": {
+        "type": "String"
+        "optional": false,
+        "description": "the name of the database table"
+    },
+    "idFieldName": {
+        "type": "String",
+        "optional": true, 
+        "default": "id",
+        "description": "the name of the primary id column"
+    },
+    "versionFieldName": {
+        "type": "String", 
+        "optional": true, 
+        "default": "version", 
+        "description": "optimistic lock version"
+    },
+    "createdFieldName": {
+        "type": "String",
+        "optional": true, 
+        "default": "date_created",
+        "description": "creation time of the row"
+    },
+    "updatedFieldName": {
+        "type": "String",
+        "optional": true, 
+        "default": "last_updated",
+        "description": "last update time of the row"
+    },
+    "rowClass": {
+        "type": "Row class",
+        "optional": false,
+        "description": "the Row class of this table"
+    },
+    "db": {
+        "type": "DB class instance",
+        "optional": false,
+        "description": "the DB instance that the table belongs to"
+    }   
+}
 ```
 
-Here's an example of creating a row:
+See [here](#row-table-instantiation) for an example of creating a table.  
+
+
+<a name="table-create"/>
+
+### table.create(database_connection, data_object, callback)
+
+The callback here takes a Row object as result.
+
+__Example__
 
 ```javascript
 var createTest = function(cb) {
     dw.connect(function(conn, cb) {
         cps.seq([
             function(_, cb) {
-                Model.Table.create(conn, getSampleDto(), cb);
+                User.Table.create(conn, {
+                    first_name: 'Hannah',
+                    last_name: 'Mckay',
+                    gender: 'female'
+                    // ....
+                }, cb);
             },
-            function(res, cb) {
-                console.log(res);
+            function(user, cb) {  // user is an object of the class User.Row
+                console.log(user.get('first_name')); // print out 'Hannah'
                 cb();
             }
         ], cb);
     }, cb);
 };
 ```
+
+In the input data object, please do NOT specify the following fields:
+
+* primary ID
+* date_created
+* last_udpated
+* version
+
+All of the these fields will be filled by the invocation to table.create.
+
+<a name="table-find"/>
+### table.find(database_connection, query_string, callback)
+
+This function is not too different from doing a query directly on a
+database connection.  The only extra thing it does is to turn the
+result from a list of simple hash objects to a list of Row objects of
+the corresponding table's "rowClass".
+
+__Example__
+
+```javascript
+dw.connect(function(conn, cb) {
+    var o;
+    cps.seq([
+        function(_, cb) {
+            User.Table.find(conn, 'select * from users', cb);
+        },
+        function(users, cb) { // users is a list of user object of the class User.Row
+            console.log(users[0]);  // print the information of the first user
+            cb();
+        }
+    ], cb);
+}, cb);
+```
+
+<a name="table-findById"/>
+### table.findById(database_connection, row_id, callback)
+
+This is simply a short-hand for:
+
+```javascript
+cps.seq([
+    function(_, cb) {
+        table.find(
+            conn, 
+            DB.format('select * from table_name where primary_id = ?', [row_id]),
+            cb
+        );
+    },
+    function(res, cb) {
+        cb(res[0]);
+    }
+], cb);
+```
+
+It finds a row in a table by its primary ID and returns a single row
+object of the table's corresponding rowClass.
+
+<a name="table-findAll"/>
+### table.findAll(database_connection, callback)
+
+This finds all the rows in a table.
+
+<a name="table-baseQuery"/>
+### table.baseQuery(query_string, variable_bindings)
+
+This is a short-hand for:
+
+```javascript
+DB.format('select * from table_name' + query_string, variable_bindings);
+```
+
+It simply prepend a partial string indicating from which table the
+query is being performed.  This might come handy in many cases.
+
+<a name="new-Row" />
+### new Row(row_data)
+
+After having a concrete Row class, row instances can be created using
+it.  The row_data parameter is an object mapping database table column
+names to their corresponding values.
+
+__Example__
+
+```javascript
+new User.Row({
+    first_name: 'Hannah',
+    last_name: 'Mckay',
+    gender: 'female'
+    //....
+});
+```
+<a name="row-update"/>
+
+### row.update(database_connection, update_object, callback)
+
+This function will set the following column automatically:
+
+* last_updated.  This field will be set to the present time stamp.
+* version.  This field will be increased.
+
+Other than these columns, only columns listed in the update_object will be updated.
+
+__Example__
+
+```javascript
+var findAndUpdateTest = function(cb) {
+    dw.connect(function(conn, cb) {
+        cps.seq([
+            function(_, cb) {
+                User.Table.findById(conn, id, cb);
+            },
+            function(user, cb) {
+                var dto = {
+                    'last_name': 'Morgan'
+                };
+                user.update(conn, dto, cb);
+            }
+        ], cb);
+    }, cb);
+};
+```
+
+<a name="row-updateWithoutOptimisticLock"/>
+### row.updateWithoutOptimisticLock(database_connection, update_object, callback)
+
+This function is the same as row.update with only one difference: it
+does not care about the optimistic lock version field.  It neither
+looks at this field nor update field.  This might be useful
+ocasionally when optimistic lock functionality needs to be overriden.
+
+
+<a name="row-get"/>
+### row.get(column_name)
+
+Get the value of a certain column from the row object.
+
+<a name="row-getId"/>
+### row.getId()
+
+Get the primary ID of the row object.
+
