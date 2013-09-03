@@ -19,9 +19,7 @@ npm install node-mysql
     }
 ```
 
-## API Document
-
-### Use
+## Use
 
 ```javascript
 var db = require('node-mysql');
@@ -30,7 +28,30 @@ var BaseRow = db.Row;
 var BaseTable = db.Table;
 ```
 
-### DB Class
+## APIs
+
+* DB
+  * [new DB](#new-DB)
+  * [db.connect](#db-connect)
+  * [db.transaction](#db-transaction)
+  * [db.end](#db-end)
+* Row
+  * [new Row](#new-Row)
+  * [row.update](#row-update)
+  * [row.updateWithoutOptimisticLock](#row-updateWithoutOptmisticLock)
+  * [row.get](#row-get)
+  * [row.getId](#row-getId)
+* Table
+  * [new Table](#new-Table)
+  * [table.create](#table-create)
+  * [table.find](#table-find)
+  * [table.findById](#table-findById)
+  * [table.findAll](#table-findAll)
+
+<a name="new-DB"/>
+### new DB(conf)
+
+Please refer to the the [connection pool conf](https://github.com/felixge/node-mysql#pooling-connections) in mysql package for the config format.
 
 __Example__
 
@@ -41,7 +62,22 @@ var box = new DB({
     password : '',
     database : 'prod_clone'
 });
+```
 
+<a name="db-connect">
+### db.connect(procedure, callback)
+
+The procedure is a function of the type: 
+
+```javascript
+function(connection, callback) {
+    // work with the database connection 
+}
+```
+
+__Example__
+
+```javascript
 var basicTest = function(cb) {
     box.connect(function(conn, cb) {
         cps.seq([
@@ -56,19 +92,75 @@ var basicTest = function(cb) {
     }, cb);
 };
 ```
-### Row and Table
+
+<a name="db-transaction"/>
+### db.transaction(db_connection, procedure, callback)
+
+The procedure is a function of the type: 
+
+```javascript
+function(connection, callback) {
+    // work with the database connection 
+}
+```
+
+Note that db.transaction takes one more arguemnt than the
+db.connect, which is a database connection object.  If the
+connection is already a transactional connection, then this connection
+will be used directly in the provided procedure.  Otherwise, a new
+transactional connection will be created and used in the provided
+procedure.
 
 __Example__
 
-Here's a sample Model class.
+```javascript
+var txnTest = function(cb) {
+    var conn;
+    dw.connect(function(conn/*This is a NON-transactional connection.*/, cb) {
+        dw.transaction(
+            conn/*This connection is masked out.*/, 
+            function(conn/*This is a newly created transactional connection.*/, cb) {
+                cps.seq([
+                    function(_, cb) {
+                        Model.Table.create(conn, getSampleDto(), cb);
+                    },
+                    function(_, cb) {
+                        dw.transaction(
+                            conn/*This connection is already transactional.*/, 
+                            function(conn/*So this is NOT a new transaction.  It's carried in from the enclosing context*/, cb) {
+                                console.log(conn.__transaction__)
+                                Model.Table.create(conn, getSampleDto(), cb);
+                            }, 
+                            cb
+                        );
+                    },
+                    function(_, cb) {
+                        throw new Error('foobar');
+                        // cb(null,'ok');
+                    }
+                ], cb);
+            }, 
+            cb
+        );
+    }, cb);
+};
+```
+
+<a name="db-end" />
+### db.end();
+
+This function destructs the db object.
+
+
+
+### Row and Table
+
+Both Row and Table are abstract classes.  They must be made concrete before being used.  Here's an example to set up the Row and Table for a particular database table:
+
+
+__Example__
 
 ```javascript
-var dw = new db.DB({
-    host     : 'localhost',
-    user     : 'root',
-    password : '',
-    database : 'data_warehouse_dev'
-});
 
 var Model = function() {
     var cls = {
@@ -145,31 +237,3 @@ var createTest = function(cb) {
     }, cb);
 };
 ```
-
-Here's an example of using transactions:
-
-```javascript
-var txnTest = function(cb) {
-    var conn;
-    dw.connect(function(conn, cb) {
-        dw.transaction(conn, function(conn, cb) {
-            cps.seq([
-                function(_, cb) {
-                    Model.Table.create(conn, getSampleDto(), cb);
-                },
-                function(_, cb) {
-                    dw.transaction(conn, function(conn, cb) {
-                        console.log(conn.__transaction__)
-                        Model.Table.create(conn, getSampleDto(), cb);
-                    }, cb);
-                },
-                function(_, cb) {
-                    throw new Error('foobar');
-                    // cb(null,'ok');
-                }
-            ], cb);
-        }, cb);
-    }, cb);
-};
-```
-

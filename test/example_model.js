@@ -90,7 +90,8 @@ var findAndUpdateTest = function(cb) {
         var o;
         cps.seq([
             function(_, cb) {
-                var q = Model.Table.baseQuery() + DB.format('limit ?', [1]);
+                var q = Model.Table.baseQuery('limit ?', [1]);
+                console.log(q);
                 Model.Table.find(conn, q, cb);
             },
             function(res, cb) {
@@ -158,4 +159,4 @@ var txnTest = function(cb) {
 };
 
 
-txnTest(cb);
+findAndUpdateTest(cb);
