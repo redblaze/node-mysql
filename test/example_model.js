@@ -29,7 +29,7 @@ var cb = function() {
         } catch(e) {
             handleError(e);
         } finally {
-            dw.end();
+            // dw.end();
         }
     };
 }();
@@ -158,5 +158,58 @@ var txnTest = function(cb) {
     }, cb);
 };
 
+var lockTest = function(cb) {
+    var exclusiveUpdate = function(conn, delay, value, cb) {
+        dw.transaction(null, function(conn, cb) {
+            cps.seq([
+                function(_, cb) {
+                    console.log('start to lock: ' + value);
+                    Model.Table.lockById(conn, 1, cb);
+                },
+                function(res, cb) {
+                    console.log('locked to update to: ' + value);
+                    setTimeout(function() {
+                        cb(null, res);
+                    }, delay);
+                },
+                function(row, cb) {
+                    if (value == 'foo1') {
+                        row.update(conn, {'product_id': 50}, cb);
+                    } else {
+                        row.update(conn, {'subscription_status': value}, cb);
+                    }
+                },
+                function(res, cb) {
+                    console.log('updated with value: ' + value);
+                    console.log(res);
+                    cb();
+                }
+            ], cb)
+        }, cb);
 
-findAndUpdateTest(cb);
+    };
+
+    var conn;
+
+    dw.transaction(conn, function(conn, cb) {
+        cps.seq([
+            function(_, cb) {
+                cps.parallel([
+                    function(cb) {
+                        exclusiveUpdate(conn, 2000, 'foo1', cb);
+                    },
+                    function(cb) {
+                        exclusiveUpdate(conn, 0, 'bar1', cb);
+                    }
+                ], cb);
+            },
+            function(res, cb) {
+                console.log(res);
+                cb();
+            }
+        ], cb);
+    }, cb);
+};
+
+
+lockTest(cb);

@@ -42,6 +42,7 @@ var BaseTable = db.Table;
   * [table.create](#table-create)
   * [table.find](#table-find)
   * [table.findById](#table-findById)
+  * [table.lockById](#table-lockById)
   * [table.findAll](#table-findAll)
   * [table.baseQuery](#table-baseQuery)
   * [new Row](#new-Row)
@@ -346,6 +347,70 @@ cps.seq([
 
 It finds a row in a table by its primary ID and returns a single row
 object of the table's corresponding rowClass.
+
+<a name="table-lockById"/>
+### table.lockById(database_connection, row_id, callback)
+
+This function does the same thing as findById and additionally, it
+locks the corresponding row for an atomic update.  lockById can ONLY
+be used in a transaction context.  Without a transaction context, it
+behaves the same as findById.  Once a row is locked in one
+transaction, attempts of locking the same row in other transactions
+will hang until the current transaction either commits or rolls back,
+which release the current lock.
+
+__Example__
+
+```javascript
+var lockTest = function(cb) {
+    var exclusiveUpdate = function(conn, delay, value, cb) {
+        dw.transaction(null, function(conn, cb) {
+            cps.seq([
+                function(_, cb) {
+                    Model.Table.lockById(conn, 1, cb);
+                },
+                function(res, cb) {
+                    setTimeout(function() {
+                        cb(null, res);
+                    }, delay);
+                },
+                function(row, cb) {
+                    row.update(conn, {'subscription_status': value}, cb);
+                },
+                function(res, cb) {
+                    cb();
+                }
+            ], cb)
+        }, cb);
+
+    };
+
+    var conn;
+
+    dw.transaction(conn, function(conn, cb) {
+        cps.seq([
+            function(_, cb) {
+                cps.parallel([
+                    function(cb) {
+                        exclusiveUpdate(conn, 2000, 'foo1', cb);
+                    },
+                    function(cb) {
+                        exclusiveUpdate(conn, 0, 'bar1', cb);
+                    }
+                ], cb);
+            },
+            function(res, cb) {
+                console.log(res);
+                cb();
+            }
+        ], cb);
+    }, cb);
+};
+```
+
+In this example, two threads are executed in parallel.  The thread of
+setting value "bar1" will be block by the thread of setting value
+"foo1".
 
 <a name="table-findAll"/>
 ### table.findAll(database_connection, callback)
