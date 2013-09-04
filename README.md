@@ -218,7 +218,7 @@ The table config schema is defined as follows:
 ```json
 {
     "name": {
-        "type": "String"
+        "type": "String",
         "optional": false,
         "description": "the name of the database table"
     },
