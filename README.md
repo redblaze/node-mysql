@@ -107,44 +107,52 @@ function(connection, callback) {
 }
 ```
 
-Note that db.transaction takes one more arguemnt than the
-db.connect, which is a database connection object.  If the
-connection is already a transactional connection, then this connection
-will be used directly in the provided procedure.  Otherwise, a new
-transactional connection will be created and used in the provided
-procedure.
+Note that db.transaction takes one more arguemnt than the db.connect,
+which is a database connection object.  If this connection object is
+already a transactional, then it will be used directly in the provided
+procedure.  Otherwise, the connection will be "made transactional" and
+then used in the provided procedure.
 
 __Example__
 
 ```javascript
 var txnTest = function(cb) {
-    var conn;
-    dw.connect(function(conn/*This is a NON-transactional connection.*/, cb) {
-        dw.transaction(
-            conn/*This connection is masked out.*/, 
-            function(conn/*This is a newly created transactional connection.*/, cb) {
-                cps.seq([
-                    function(_, cb) {
+    var add2Rows = function(conn, b, cb) {
+        dw.transaction(conn, function(conn, cb) {
+            cps.seq([
+                function(_, cb) {
+                    Model.Table.create(conn, getSampleDto(), cb);
+                },
+                function(_, cb) {
+                    dw.transaction(conn, function(conn, cb) {
+                        console.log(conn.__transaction__)
                         Model.Table.create(conn, getSampleDto(), cb);
-                    },
-                    function(_, cb) {
-                        dw.transaction(
-                            conn/*This connection is already transactional.*/, 
-                            function(conn/*So this is NOT a new transaction.  It's carried in from the enclosing context*/, cb) {
-                                console.log(conn.__transaction__)
-                                Model.Table.create(conn, getSampleDto(), cb);
-                            }, 
-                            cb
-                        );
-                    },
-                    function(_, cb) {
-                        throw new Error('foobar');
-                        // cb(null,'ok');
+                    }, cb);
+                },
+                function(_, cb) {
+                    if (b) {
+                        cb(null, "Commit");
+                    } else {
+                        throw new Error("Roll back");
                     }
-                ], cb);
-            }, 
-            cb
-        );
+                }
+            ], cb);
+        }, cb);
+
+    };
+
+    dw.connect(function(conn, cb) {
+        /* Uncommenting the following line will merge the two calls to add2Rows into one transaction. */
+        // dw.transaction(conn, function(conn, cb) {
+            cps.seq([
+                function(_, cb) {
+                    add2Rows(conn, true, cb);
+                },
+                function(_, cb) {
+                    add2Rows(conn, true, cb);
+                }
+            ], cb);
+        // }, cb);
     }, cb);
 };
 ```
