@@ -1,6 +1,14 @@
 # node-mysql
 
-A wrapper of the node.js mysql package to make it a bit easier to use.
+An enhancement to the mysql lib to make it a bit easier to use.  Based on mysql's existing funtionalities, it also
+
+* Handles transactions.
+* Provides a simple ORM, which
+  * Detects table schema automatically.
+  * Provides handy functions for creating and updating rows.
+  * Handles optimistic lock through versioning transparently.
+  * Maintains "date_created" and "last_updated" automatically.
+  * Provides database row level lock functionality.
 
 ## Install
 
