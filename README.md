@@ -121,7 +121,8 @@ var txnTest = function(cb) {
         dw.transaction(
             conn/*This is a non-transactional connection.*/, 
             function(
-                conn/*A new transactional connection is created to handle the transactional session.*/, 
+                conn/*A new transactional connection is 
+                      created to handle the transactional session.*/, 
                 cb
             ) {
                 cps.seq([
@@ -133,7 +134,8 @@ var txnTest = function(cb) {
                             conn/*This is already a transactional connection.*/, 
                             function(
                                 conn/*No new transactional connection created. 
-                                      This connection is the same one as the in the caller context*/, 
+                                      This connection is the same one as 
+                                      in the calling context*/, 
                                 cb
                             ) {
                                 console.log(conn.__transaction__)
@@ -156,7 +158,8 @@ var txnTest = function(cb) {
     };
 
     dw.connect(function(conn, cb) {
-        /* Uncommenting the following line will merge the two calls to add2Rows into one transaction. */
+        /* Uncommenting the following line will merge the two calls 
+           to add2Rows into one transaction. */
         // dw.transaction(conn, function(conn, cb) {
             cps.seq([
                 function(_, cb) {
