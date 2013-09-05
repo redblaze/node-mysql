@@ -118,27 +118,41 @@ __Example__
 ```javascript
 var txnTest = function(cb) {
     var add2Rows = function(conn, b, cb) {
-        dw.transaction(conn, function(conn, cb) {
-            cps.seq([
-                function(_, cb) {
-                    Model.Table.create(conn, getSampleDto(), cb);
-                },
-                function(_, cb) {
-                    dw.transaction(conn, function(conn, cb) {
-                        console.log(conn.__transaction__)
+        dw.transaction(
+            conn/*This is a non-transactional connection.*/, 
+            function(
+                conn/*A new transactional connection is created to handle the transactional session.*/, 
+                cb
+            ) {
+                cps.seq([
+                    function(_, cb) {
                         Model.Table.create(conn, getSampleDto(), cb);
-                    }, cb);
-                },
-                function(_, cb) {
-                    if (b) {
-                        cb(null, "Commit");
-                    } else {
-                        throw new Error("Roll back");
+                    },
+                    function(_, cb) {
+                        dw.transaction(
+                            conn/*This is already a transactional connection.*/, 
+                            function(
+                                conn/*No new transactional connection created. 
+                                      This connection is the same one as the in the caller context*/, 
+                                cb
+                            ) {
+                                console.log(conn.__transaction__)
+                                Model.Table.create(conn, getSampleDto(), cb);
+                            }, 
+                            cb
+                        );
+                    },
+                    function(_, cb) {
+                        if (b) {
+                            cb(null, "Commit");
+                        } else {
+                            throw new Error("Roll back");
+                        }
                     }
-                }
-            ], cb);
-        }, cb);
-
+                ], cb);
+            }, 
+            cb
+        );
     };
 
     dw.connect(function(conn, cb) {

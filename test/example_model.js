@@ -144,7 +144,6 @@ var txnTest = function(cb) {
                 },
                 function(_, cb) {
                     dw.transaction(conn, function(conn, cb) {
-                        console.log(conn.__transaction__)
                         Model.Table.create(conn, getSampleDto(), cb);
                     }, cb);
                 },
@@ -178,35 +177,35 @@ var lockTest = function(cb) {
     var id = 74;
 
     var exclusiveUpdate = function(conn, delay, value, cb) {
-        dw.connect(function(conn, cb) {
-            dw.transaction(conn, function(conn, cb) {
-                cps.seq([
-                    function(_, cb) {
-                        console.log('start to lock: ' + value);
-                        Model.Table.lockById(conn, id, cb);
-                    },
-                    function(res, cb) {
-                        console.log('locked to update to: ' + value);
-                        setTimeout(function() {
-                            cb(null, res);
-                        }, delay);
-                    },
-                    function(row, cb) {
-                        if (value == 'foo1') {
-                            row.update(conn, {'product_id': 50}, cb);
-                        } else {
-                            row.update(conn, {'subscription_status': value}, cb);
-                        }
-                    },
-                    function(res, cb) {
-                        console.log('updated with value: ' + value);
-                        console.log(res);
-                        cb();
+        dw.transaction(conn, function(conn, cb) {
+            cps.seq([
+                function(_, cb) {
+                    console.log('start to lock: ' + value);
+                    Model.Table.lockById(conn, id, cb);
+                },
+                function(res, cb) {
+                    console.log('locked to update to: ' + value);
+                    setTimeout(function() {
+                        cb(null, res);
+                    }, delay);
+                },
+                function(row, cb) {
+                    if (value == 'foo1') {
+                        row.update(conn, {'product_id': 50}, cb);
+                    } else {
+                        row.update(conn, {'subscription_status': value}, cb);
                     }
-                ], cb)
-            }, cb);
+                },
+                function(res, cb) {
+                    console.log('updated with value: ' + value);
+                    console.log(res);
+                    cb();
+                }
+            ], cb)
         }, cb);
     };
+
+    var conn;
 
     dw.connect(function(conn, cb) {
         cps.seq([
@@ -229,4 +228,4 @@ var lockTest = function(cb) {
 };
 
 
-txnTest(cb);
+lockTest(cb);
