@@ -60,19 +60,6 @@ var Model = function() {
         'name': 'subscription_initiation',
         'idFieldName': 'id',
         'rowClass': Row,
-        /*
-        'schema': [
-            'id',
-            'version',
-            'date_created',
-            'last_updated',
-            'user_id',
-            'subscription_id',
-            'gift_id',
-            'init_date',
-            'subscription_status'
-        ],
-        */
         'db': dw
     });
 
@@ -90,14 +77,15 @@ var findAndUpdateTest = function(cb) {
         var o;
         cps.seq([
             function(_, cb) {
-                var q = Model.Table.baseQuery('limit ?', [1]);
+                var q = Model.Table.baseQuery('order by date_created desc limit 1');
                 console.log(q);
                 Model.Table.find(conn, q, cb);
             },
             function(res, cb) {
                 o = res[0];
                 var dto = {
-                    'subscription_status': 'active'
+                    'first_shipment_id': 300,
+                    'junk': function() {}
                 };
                 o.update(conn, dto, cb);
             },
@@ -112,12 +100,16 @@ var findAndUpdateTest = function(cb) {
 
 var getSampleDto = function() {
     return {
+        id: 46585,
         user_id: '1',
-            subscription_id: '1',
+        subscription_id: '1',
         order_id: '1',
         product_id: '1',
         init_date: new Date(),
-        subscription_status: 'inactive'
+        subscription_status: 'inactive',
+        date_created: new Date(),
+        last_updated: new Date(),
+        version: 100
     }
 };
 
@@ -125,7 +117,7 @@ var createTest = function(cb) {
     dw.connect(function(conn, cb) {
         cps.seq([
             function(_, cb) {
-                Model.Table.create(conn, getSampleDto(), cb);
+                Model.Table.clone(conn, getSampleDto(), cb);
             },
             function(res, cb) {
                 console.log(res);
@@ -228,4 +220,4 @@ var lockTest = function(cb) {
 };
 
 
-lockTest(cb);
+createTest(cb);

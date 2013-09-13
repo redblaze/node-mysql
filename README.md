@@ -53,11 +53,17 @@ var BaseTable = db.Table;
   * [table.lockById](#table-lockById)
   * [table.findAll](#table-findAll)
   * [table.baseQuery](#table-baseQuery)
+  * [table.linksTo](#table-linksTo)
+  * [table.linkedBy](#table-linkedBy)
+  * [table.relatesTo](#table-relatesTo)
   * [new Row](#new-Row)
   * [row.update](#row-update)
   * [row.updateWithoutOptimisticLock](#row-updateWithoutOptimisticLock)
   * [row.get](#row-get)
   * [row.getId](#row-getId)
+  * [row.linksTo](#row-linksTo)
+  * [row.linkedBy](#row-linkedBy)
+  * [row.relatesTo](#row-relatesTo)
 
 <a name="new-DB"/>
 ### new DB(conf)
@@ -462,6 +468,79 @@ DB.format('select * from table_name' + query_string, variable_bindings);
 It simply prepend a partial string indicating from which table the
 query is being performed.  This might come handy in many cases.
 
+<a name="table-linksTo"/>
+### table.linksTo(config)
+
+The config object has the following schema:
+
+```json
+{
+    "name": {
+        "type": "String",
+        "description": "The name of the field to add to the row's data."
+    },
+    "key": {
+        "type": "String",
+        "description": "The key that belongs to the current table and links to another table."
+    },
+    "table": {
+        "type": "Table"
+        "description": "The Table object for the other table to join.  This object must be constructed using the constructor of Table."
+    }
+}
+```
+
+__Example__
+
+```javascript
+    var Table = new TableClass({
+        'name': 'orders',
+        'idFieldName': 'id',
+        'rowClass': Row,
+        'db': db.main
+    });
+
+    Table
+        .linksTo({
+            name: 'credit_card',
+            table: CreditCard.Table,
+            key: 'credit_card_id'
+        })
+        .linksTo({
+            name: 'shipping_address',
+            table: Address.Table,
+            key: 'shipping_address_id'
+        })
+    ;
+```
+
+Note that for "linksTo", the (join) key is on the current table.  Once
+a "linksTo" is set up, a row object that corresponds to this table can
+call the "linksTo" method to pull more (associated) data into the row.
+See examples [here](#row-linksTo).
+
+<a name="linkedBy"/>
+### table.linkedBy(config)
+
+The config object has the following schema:
+
+```json
+{
+    "name": {
+        "type": "String",
+        "description": "The name of the field to add to the row's data."
+    },
+    "key": {
+        "type": "String",
+        "description": "The key that belongs to the current table and links to another table."
+    },
+    "table": {
+        "type": "Table"
+        "description": "The Table object for the other table to join.  This object must be constructed using the constructor of Table."
+    }
+}
+```
+
 <a name="new-Row" />
 ### new Row(row_data)
 
@@ -529,3 +608,31 @@ Get the value of a certain column from the row object.
 
 Get the primary ID of the row object.
 
+<a name="row-linksTo"/>
+### row.linksTo(database_connection, field_name, callback)
+
+Given a "linksTo" setup in the corresponding "Table" object, the linksTo method on a row pull further relevant data into the row.
+
+__Example__
+
+```javascript
+var order;
+
+cps.seq([
+    function(_, cb) {
+        Order.Table.findById(conn, id, cb);
+    },
+    function(res, cb) {
+        order = res;
+        order.linksTo(conn, 'credit_card', cb);
+    },
+    function(_, cb) {
+        order.linksTo(conn, 'shipping_address', cb);
+    },
+    function(_, cb) {
+        console.log(order.get('credit_card').getId());
+        console.log(order.get('shipping_address').getId());
+        cb();
+    }
+], cb);
+```
