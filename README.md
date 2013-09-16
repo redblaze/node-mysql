@@ -46,8 +46,10 @@ var BaseTable = db.Table;
   * [DB.format](#DB-format)
 * Row and Table
   * [define concrete classes](#row-table-instantiation)
+* Table
   * [new Table](#new-Table)
   * [table.create](#table-create)
+  * [table.clone](#table-clone)
   * [table.find](#table-find)
   * [table.findById](#table-findById)
   * [table.lockById](#table-lockById)
@@ -56,6 +58,7 @@ var BaseTable = db.Table;
   * [table.linksTo](#table-linksTo)
   * [table.linkedBy](#table-linkedBy)
   * [table.relatesTo](#table-relatesTo)
+* Row
   * [new Row](#new-Row)
   * [row.update](#row-update)
   * [row.updateWithoutOptimisticLock](#row-updateWithoutOptimisticLock)
@@ -339,6 +342,25 @@ In the input data object, please do NOT specify the following fields:
 
 All of the these fields will be filled by the invocation to table.create.
 
+
+<a name="table-clone"/>
+
+### table.clone(database_connection, data_object, callback)
+
+This API is very similar to table.create.  The key difference is that
+it does not mask out any data field carried in data_object.  Instead,
+it literally uses every thing in data_object to create a new row.  In
+other words, it'll honor the values of the following fields in
+data_object:
+
+* primary ID
+* date_created
+* last_udpated
+* version
+
+This API can be useful when one attempts to clone a row in a table
+literally to another table (which might be in another database).
+
 <a name="table-find"/>
 ### table.find(database_connection, query_string, callback)
 
@@ -519,7 +541,7 @@ a "linksTo" is set up, a row object that corresponds to this table can
 call the "linksTo" method to pull more (associated) data into the row.
 See examples [here](#row-linksTo).
 
-<a name="linkedBy"/>
+<a name="table-linkedBy"/>
 ### table.linkedBy(config)
 
 The config object has the following schema:
@@ -532,7 +554,7 @@ The config object has the following schema:
     },
     "key": {
         "type": "String",
-        "description": "The key that belongs to the current table and links to another table."
+        "description": "The key that belongs to the other table and links to the current table."
     },
     "table": {
         "type": "Table"
@@ -540,6 +562,87 @@ The config object has the following schema:
     }
 }
 ```
+
+__Example__
+
+```javascript
+    var Table = new TableClass({
+        'name': 'orders',
+        'idFieldName': 'id',
+        'rowClass': Row,
+        'db': db.main
+    });
+
+    Table
+        .linkedBy({
+            name: 'items',
+            table: OrderItem.Table,
+            key: 'order_id'
+        })
+    ;
+```
+
+Once a "linkedBy" is set up on a table, a row object corresponding to
+this table can call the "linkedBy" method to pull more (associated)
+data into the row.  See examples [here](#row-linkedBy).
+
+<a name="table-relatesTo"/>
+
+### table.relatesTo(config)
+
+The config object has the following schema:
+
+```json
+{
+    "name": {
+        "type": "String",
+        "description": "The name of the field to add to the row's data."
+    },
+    "through": {
+        "type": "Table",
+        "description": "The Table object for the through table, which joins both the current table and the target table."
+    },
+    "leftKey": {
+        "type": "String",
+        "description": "The key that belongs to the current table and joins with the through table."
+    },
+    "table": {
+        "type": "Table"
+        "description": "The Table object for the target table to include."
+    },
+    "rightKey": {
+        "type": "String",
+        "description": "The key that belongs to the target table and joins with the through table."
+    }
+}
+```
+
+__Example__
+
+```javascript
+    var Table = new TableClass({
+        'name': 'orders',
+        'idFieldName': 'id',
+        'rowClass': Row,
+        'db': db.main
+    });
+
+    Table
+        .relatesTo({
+            name: 'coupons',
+            through: OrderCoupon.Table,
+            leftKey: 'order_id',
+            table: Coupon.Table,
+            rightKey: 'coupon_id'
+        })
+    ;
+```
+
+table.relatesTo is designed to represent ORM of a many-to-many
+relation.  Once a "relatesTo" is set up on a table, a row object
+corresponding to this table can call the "relatesTo" method to pull
+more (associated) data into the row.  See examples
+[here](#row-relatesTo).
 
 <a name="new-Row" />
 ### new Row(row_data)
@@ -611,7 +714,7 @@ Get the primary ID of the row object.
 <a name="row-linksTo"/>
 ### row.linksTo(database_connection, field_name, callback)
 
-Given a "linksTo" setup in the corresponding "Table" object, the linksTo method on a row pull further relevant data into the row.
+Given a "linksTo" setup in the corresponding "Table" object, row.linksTo pulls further relevant data into the row.
 
 __Example__
 
@@ -632,6 +735,60 @@ cps.seq([
     function(_, cb) {
         console.log(order.get('credit_card').getId());
         console.log(order.get('shipping_address').getId());
+        cb();
+    }
+], cb);
+```
+
+<a name="row-linkedBy"/>
+### row.linkedBy(database_connection, field_name, callback)
+
+Given a "linkedBy" setup in the corresponding "Table" object, row.linkedBy pulls further relevant data into the row.
+
+__Example__
+
+```javascript
+var order;
+
+cps.seq([
+    function(_, cb) {
+        Order.Table.findById(conn, id, cb);
+    },
+    function(res, cb) {
+        order = res;
+        order.linkedBy(conn, 'items', cb);
+    },
+    function(items, cb) {
+        // items will both be bound to the return value and be assigned to the 'items' field.
+        console.log(items);
+        console.log(order.get('items'));
+        cb();
+    }
+], cb);
+```
+
+<a name="row-relatesTo"/>
+### row.relatesTo(database_connection, field_name, callback)
+
+Given a "relatesTo" setup in the corresponding "Table" object, row.relatesTo pulls further relevant data into the row.
+
+__Example__
+
+```javascript
+var order;
+
+cps.seq([
+    function(_, cb) {
+        Order.Table.findById(conn, id, cb);
+    },
+    function(res, cb) {
+        order = res;
+        order.relatesTo(conn, 'coupons', cb);
+    },
+    function(coupons, cb) {
+        // coupons will both be bound to the return value and be assigned to the 'coupons' field.
+        console.log(coupons); 
+        console.log(order.get('coupons'));
         cb();
     }
 ], cb);
