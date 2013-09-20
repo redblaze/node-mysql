@@ -57,5 +57,21 @@ var scehmaTest = function(cb) {
     box._prepare(cb);
 };
 
+var cursorTest = function(cb) {
+    box.connect(function(boxConn, cb) {
+        var q = 'select * from coupons';
 
-basicTest(cb);
+        box.cursor(q, function(row, cb) {
+            // boxConn.query(q, cb);
+            throw new Error('foobar');
+        }, function(err, res) {
+            if (err) {
+                console.log(err);
+            }
+            cb(err, res);
+        });
+    }, cb);
+};
+
+
+cursorTest(cb);

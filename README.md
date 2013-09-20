@@ -42,6 +42,7 @@ var BaseTable = db.Table;
   * [new DB](#new-DB)
   * [db.connect](#db-connect)
   * [db.transaction](#db-transaction)
+  * [db.cursor](#db-cursor)
   * [db.end](#db-end)
   * [DB.format](#DB-format)
 * Row and Table
@@ -190,6 +191,58 @@ var txnTest = function(cb) {
     }, cb);
 };
 ```
+
+<a name="db-cursor"/>
+### db.cursor(query_string, procedure, callback)
+
+This API can be used to cursor thought the (potentially very long list
+of) results of a query.  The procedure parameter is the operation to
+be applied to each row in the results of the query.  Please note the following:
+
+* db.cursor will create a separate db connection for cursoring
+  purpose.  That is why this API does not take a db_connection in the
+  parameter list, unlike most of the other db related APIs.  
+
+* If there is an exception thrown out of the row handling procedure,
+  the cursoring will be stopped and the exception will be thrown out
+  to the top level callback (the 3rd parameter to db.cursor).  If you
+  intend for the cursor to go over all the results, you need to catch
+  any exceptions in the row handling procedure (using cps.rescue).
+
+__Example__
+
+```javascript
+// cursor through all the users and update the active status to "1"
+var cursorTest = function(cb) {
+    db.connect(function(conn, cb) {
+        var q = 'select * from users';
+
+        db.cursor(q, function(row, cb) {
+            cps.rescur({
+                'try': function() {
+                    cps.seq([
+                        function(_, cb) {
+                            var user = new User.Row(row);
+                            user.update(conn, {active: 1}, cb);
+                        }, 
+                        function(res, cb) {
+                            console.log(res);
+                            cb();
+                        }
+                    ], cb);
+                },
+                'catch': function(err, cb) {
+                    console.log(err);
+                    cb();
+                }
+            }, cb);
+        }, cb);
+    }, cb);
+};
+```
+
+
+
 
 <a name="db-end" />
 ### db.end();
