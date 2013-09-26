@@ -1,6 +1,6 @@
 # node-mysql
 
-An enhancement to the mysql lib to make it a bit easier to use.  Based on mysql's existing funtionalities, it also
+An enhancement to the mysql lib to make it a bit easier to use.  Based on the existing funtionalities of (npm) mysql, it also
 
 * Handles transactions.
 * Provides a simple ORM, which
@@ -44,9 +44,9 @@ var BaseTable = db.Table;
   * [db.transaction](#db-transaction)
   * [db.cursor](#db-cursor)
   * [db.end](#db-end)
+  * [db.add](#db-add)
+  * [db.get](#db-get)
   * [DB.format](#DB-format)
-* Row and Table
-  * [define concrete classes](#row-table-instantiation)
 * Table
   * [new Table](#new-Table)
   * [table.create](#table-create)
@@ -249,6 +249,165 @@ var cursorTest = function(cb) {
 
 This function destructs the db object.
 
+<a name="db-add"/>
+
+### db.add(config);
+
+This function is used to define a model that belongs to the db object.  The model config object is of the following format:
+
+```json
+{
+    "name": {
+        "type": "String",
+        "description": "the name of the table"
+    },
+    "idFieldName": {
+        "type": "String",
+        "optional": true, 
+        "default": "id",
+        "description": "the name of the primary id column"
+    },
+    "versionFieldName": {
+        "type": "String", 
+        "optional": true, 
+        "default": "version", 
+        "description": "optimistic lock version"
+    },
+    "createdFieldName": {
+        "type": "String",
+        "optional": true, 
+        "default": "date_created",
+        "description": "creation time of the row"
+    },
+    "updatedFieldName": {
+        "type": "String",
+        "optional": true, 
+        "default": "last_updated",
+        "description": "last update time of the row"
+    },
+    "Row": {
+        "type": "Object",
+        "optional": true,
+        "default": "{}",
+        "description": "the overriding method definition for the Row class of this model"
+    },
+    "Table": {
+        "type": "Object",
+        "optional": true,
+        "default": "{}",
+        "description": "the overriding method definition for the Table class of this model"
+    }
+}
+```
+
+Note that db.add returns a Table object, which can be further chained
+with linking/joining functions such as [linksTo](#table-linksTo),
+[linkedBy](#table-linkedBy) and [relatesTo](#table-relatesTo).
+
+__Example__
+
+```javascript
+db.add({
+    name: 'orders',
+    idFieldName: 'order_id',
+    Row: {
+        getFirstOrderItem: function(conn, cb) {
+            var me = this;
+
+            cps.seq([
+                function(_, cb) {
+                    me.linkedBy(conn, 'items', cb);
+                },
+                function(items, cb) {
+                    cb(null, items[0]);
+                }
+            ], cb);
+        }
+    },
+    Table: {
+        createOrderUsingCoupon: function(conn, dto, coupon, cb) {
+            dto['coupon_id'] = coupon.getId();
+            this.create(conn, dto, cb);
+        }
+    }
+})
+    .linkedBy({
+        name: 'items',
+        key: 'order_id',
+        table: 'order_items'
+    })
+    .linksTo({
+        name: 'user',
+        key: 'user_id',
+        table: 'users'
+    })
+    .linksTo({
+        name: 'coupon',
+        key: 'coupon_id',
+        table: 'coupons'
+    })
+    .linksTo({
+        name: 'credit_card',
+        key: 'credit_card_id',
+        table: 'credit_cards'
+    })
+;
+
+```
+
+In this example: 
+
+* We created a model for the table "orders" in the database.  
+* We add a method getFirstOrderItem into the Row class of this model.
+* We add a method createOrderWithCoupon into the Table class of this model.
+* We follow the foreign key relations of the "orders" table to define some link relations.
+
+<a name="db-get"/>
+
+### db.get(table_name)
+
+Once you use db.add to create a model in the db object, you can then
+use db.get to retrieve it by name.  The return value of
+db.get if a object of the following format:
+
+```json
+{
+    "Row": {
+        "type": "Row object"
+    },
+    "Table": {
+        "type": "Table object"
+    }
+}
+```
+
+__Example__
+
+```javascript
+var Order = db.get('orders');
+var Coupon = db.get('coupons');
+
+db.connect(function(conn, cb) {
+    cps.seq([
+        function(_, cb) {
+            Coupon.Table.findByCode(conn, '10-percent-off', cb);
+        }
+        function(coupon, cb) {
+            var dto = {/*dto data*/};
+            Order.createOrderWithCoupon(conn, dto, coupon, cb);
+        },
+        function(order, cb) {
+            order.getFirstOrderItem(conn, cb);
+        },
+        function(firstItem, cb) {
+            console.log(firstItem);
+            cb()
+        }
+    ], cb);
+}, cb);
+```
+
+
 <a name="DB-format" />
 ### DB.format(query_string, variable_bindings)
 
@@ -262,49 +421,6 @@ __Example__
 ```javascript
 DB.format('select * from users where id = ?' [userId]);
 ```
-<a name="row-table-instantiation" />
-### Concrete Classes for Row and Table
-
-Both Row and Table are abstract classes.  They must be made concrete
-before being used.  Here's an example to set up the Row and Table for
-a particular database table:
-
-
-__Example__
-
-```javascript
-
-var User = function() {
-    var cls = {
-    };
-
-    var Row = Class(db.Row, {
-        _init: function(data) {
-            this.parent._init.call(this, data, {
-                table: Table
-            });
-        }
-    });
-
-    var TableClass = Class(db.Table, {
-    });
-
-    var Table = new TableClass({
-        'name': 'users',
-        'idFieldName': 'id',
-        'rowClass': Row,
-        'db': dw
-    });
-
-    $U.extend(cls, {
-        Row: Row,
-        Table: Table
-    });
-
-    return cls;
-}();
-```
-
 <a name="new-Table"/>
 ### new Table(table_config)
 
@@ -559,8 +675,8 @@ The config object has the following schema:
         "description": "The key that belongs to the current table and links to another table."
     },
     "table": {
-        "type": "Table"
-        "description": "The Table object for the other table to join.  This object must be constructed using the constructor of Table."
+        "type": "String",
+        "description": "The name of the table that the current table links to."
     }
 }
 ```
@@ -568,23 +684,16 @@ The config object has the following schema:
 __Example__
 
 ```javascript
-    var Table = new TableClass({
-        'name': 'orders',
-        'idFieldName': 'id',
-        'rowClass': Row,
-        'db': db.main
-    });
-
-    Table
+    Order.Table
         .linksTo({
             name: 'credit_card',
-            table: CreditCard.Table,
             key: 'credit_card_id'
+            table: 'credit_cards'
         })
         .linksTo({
             name: 'shipping_address',
-            table: Address.Table,
             key: 'shipping_address_id'
+            table: 'addresses'
         })
     ;
 ```
@@ -610,8 +719,8 @@ The config object has the following schema:
         "description": "The key that belongs to the other table and links to the current table."
     },
     "table": {
-        "type": "Table"
-        "description": "The Table object for the other table to join.  This object must be constructed using the constructor of Table."
+        "type": "String",
+        "description": "The name of the table that the current table is linked by."
     }
 }
 ```
@@ -619,14 +728,7 @@ The config object has the following schema:
 __Example__
 
 ```javascript
-    var Table = new TableClass({
-        'name': 'orders',
-        'idFieldName': 'id',
-        'rowClass': Row,
-        'db': db.main
-    });
-
-    Table
+    Order.Table
         .linkedBy({
             name: 'items',
             table: OrderItem.Table,
@@ -652,16 +754,16 @@ The config object has the following schema:
         "description": "The name of the field to add to the row's data."
     },
     "through": {
-        "type": "Table",
-        "description": "The Table object for the through table, which joins both the current table and the target table."
+        "type": "String",
+        "description": "The name of the through table, which joins both the current table and the target table."
     },
     "leftKey": {
         "type": "String",
         "description": "The key that belongs to the current table and joins with the through table."
     },
     "table": {
-        "type": "Table"
-        "description": "The Table object for the target table to include."
+        "type": "String",
+        "description": "The name of the target table that the current table is joining thourgh the through-table."
     },
     "rightKey": {
         "type": "String",
@@ -673,20 +775,13 @@ The config object has the following schema:
 __Example__
 
 ```javascript
-    var Table = new TableClass({
-        'name': 'orders',
-        'idFieldName': 'id',
-        'rowClass': Row,
-        'db': db.main
-    });
-
-    Table
+    Order.Table
         .relatesTo({
             name: 'coupons',
-            through: OrderCoupon.Table,
             leftKey: 'order_id',
-            table: Coupon.Table,
-            rightKey: 'coupon_id'
+            through: 'order_coupons',
+            rightKey: 'coupon_id',
+            table: 'coupons'
         })
     ;
 ```

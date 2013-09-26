@@ -3,7 +3,7 @@
     "description": "A wrapper of node.js mysql package to make it a bit easier to use.",
     "main": "./lib/node-mysql",
     "author": "Chiyan Chen",
-    "version": "0.2.9",
+    "version": "0.3.0",
     "repository" : {
         "type" : "git",
         "url" : "https://github.com/redblaze/node-mysql.git"
