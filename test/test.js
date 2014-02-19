@@ -1,9 +1,9 @@
+Error.stackTraceLimit = Infinity;
+
 var cps = require('cps');
 
 var db = require('../lib/node-mysql.js');
 var DB = db.DB;
-var Row = db.Row;
-var Table = db.Table;
 
 var cb = function() {
     var handleError = function(e) {
@@ -73,5 +73,54 @@ var cursorTest = function(cb) {
     }, cb);
 };
 
+var modelTest = function(cb) {
+    box.add({
+        name: 'coupons',
+        idFieldName: 'coupon_id'
+    })
+    ;
 
-cursorTest(cb);
+    box.add({
+        name: 'products',
+        idFieldName: 'product_id'
+    })
+    ;
+
+    var oldBox = box;
+
+    box = box.clone();
+
+    box.extend({
+        name: 'coupons',
+        Row: {
+            getDiscountType: function() {
+                return this._data['discount_type'];
+            }
+        }
+    })
+        .linksTo({
+            name: 'product',
+            table: 'products',
+            key: 'product_id'
+        })
+    ;
+
+    var Coupon = box.get('coupons').Table;
+
+    box.connect(function(conn, cb) {
+        cps.seq([
+            function(_, cb) {
+                var q = Coupon.baseQuery('where product_id is not null limit 1');
+                Coupon.find(conn, q, cb);
+            },
+            function(coupons, cb) {
+                cps.pmap(coupons, function(coupon, cb) {
+                    // coupon.linksTo(conn, 'product', cb);
+                    cb(null, coupon.getDiscountType());
+                }, cb);
+            }
+        ], cb);
+    }, cb);
+};
+
+modelTest(cb);
