@@ -134,6 +134,8 @@ var box = new DB({
 });
 ```
 
+#### useCursor
+
 Similarly to "useTransaction", only if "useCursor" is provided can "db.cursor" API be called.  Otherwise, calls to "db.cursor" will throw an exception with the error message "cursor-not-setup-error".  The field "useCursor" is very similar to the field "useTransaction", with the only difference that it is for setting up the mysql connection pool for cursors rather than transactions.  "useCursor" is also an overriding object based upon the connection pool configuration for normal connections.  For instance:
 
 __Example__
@@ -174,6 +176,8 @@ var box = new DB({
     transactionLimit: 1
 });
 ```
+
+#### Use Both
 
 "useTransaction" and "useCursor" can be used together:
 
