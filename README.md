@@ -85,6 +85,31 @@ var box = new DB({
 });
 ```
 
+Notably, there are two special parameters that can be used in the conf object besides those provided by in mysql package:
+
+* useTransaction
+* useCursor
+
+Only if useTransaction is provided can db.transaction be called.  Otherwise, any call to db.transaction will throw an error with message "transation-not-setup-error".  The useTransaction object is an overridding portion based upon the conf object for connection pool setup to run transactions.  For instance
+
+__Example__
+
+```javascript
+var box = new DB({
+    host     : 'localhost',
+    user     : 'root',
+    password : '',
+    database : 'prod_clone',
+    transactionLimit: 50,
+    useTransaction: {
+        transactionLimit: 1
+    }
+});
+```
+
+will allow the db object "box" to use "box.transaction" API, with a connection pool for transactions set up exactly the same way as the normal connection pool except for the transactionLimit field being overridden to 1.
+
+
 <a name="db-connect">
 ### db.connect(procedure, callback)
 
