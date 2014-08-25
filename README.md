@@ -131,7 +131,102 @@ var box = new DB({
 });
 ```
 
+Similarly to "useTransaction", only if "useCursor" is provided can "db.cursor" API be called.  Otherwise, calls to "db.cursor" will throw an exception with the error message "cursor-not-setup-error".  The field "useCursor" is very similar to the field "useTransaction", with the only difference that it is for setting up the mysql connection pool for cursors rather than transactions.  "useCursor" is also an overriding object based upon the connection pool configuration for normal connections.  For instance:
 
+__Example__
+
+```javascript
+var box = new DB({
+    host     : 'localhost',
+    user     : 'root',
+    password : '',
+    database : 'prod_clone',
+    transactionLimit: 50,
+    useCursor: {
+        transactionLimit: 1
+    }
+});
+```
+
+will allow the API "box.cursor" to be called, with a connection pool for cursors set up the same way as the normal connection pool except for the transactionLimit field being overridden to 1.  So in "box", there are two mysql connection pools, for normal db requests and cursor db requests, repectively.  The normal connection pool's configuration is: 
+
+```javascript
+var box = new DB({
+    host     : 'localhost',
+    user     : 'root',
+    password : '',
+    database : 'prod_clone',
+    transactionLimit: 50
+});
+```
+
+while the cursor connection pool's configuration is:
+
+```javascript
+var box = new DB({
+    host     : 'localhost',
+    user     : 'root',
+    password : '',
+    database : 'prod_clone',
+    transactionLimit: 1
+});
+```
+
+"useTransaction" and "useCursor" can be used together:
+
+__Example__
+
+```javascript
+var box = new DB({
+    host     : 'localhost',
+    user     : 'root',
+    password : '',
+    database : 'prod_clone',
+    transactionLimit: 50,
+    useTransaction: {
+        transactionLimit: 20
+    },
+    useCursor: {
+        transactionLimit: 1
+    }
+});
+```
+
+This will allow all of the three APIs, "box.connect", "box.transaction" and "box.cursor" to be called.  In this case, box hold three connection pools, for normal connections, transactional connections and cursor connections, respectively.  The normal connection pool is configured as:
+
+```javascript
+var box = new DB({
+    host     : 'localhost',
+    user     : 'root',
+    password : '',
+    database : 'prod_clone',
+    transactionLimit: 50
+});
+```
+
+the transactional connection pool is configured as:
+
+```javascript
+var box = new DB({
+    host     : 'localhost',
+    user     : 'root',
+    password : '',
+    database : 'prod_clone',
+    transactionLimit: 20
+});
+```
+
+and the cursor connection pool is configured as:
+
+```javascript
+var box = new DB({
+    host     : 'localhost',
+    user     : 'root',
+    password : '',
+    database : 'prod_clone',
+    transactionLimit: 1
+});
+```
 
 
 <a name="db-connect">
