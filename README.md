@@ -90,6 +90,9 @@ Besides the fields provided by in mysql package, there are two special parameter
 * useTransaction
 * useCursor
 
+
+#### useTransaction
+
 Only if "useTransaction" is provided can "db.transaction" API be called.  Otherwise, calls to "db.transaction" will throw an error with the message "transation-not-setup-error".  The "useTransaction" field itself is an configuration object that overrides the fields in "conf" to set up a connection pool for transactions.  For instance:
 
 __Example__
