@@ -72,7 +72,7 @@ var BaseTable = db.Table;
 <a name="new-DB"/>
 ### new DB(conf)
 
-Please refer to the the [connection pool conf](https://github.com/felixge/node-mysql#pooling-connections) in mysql package for the config format.
+Please refer to the the [connection pool conf](https://github.com/felixge/node-mysql#pooling-connections) in mysql package for the format of "conf".
 
 __Example__
 
@@ -85,12 +85,12 @@ var box = new DB({
 });
 ```
 
-Notably, there are two special parameters that can be used in the conf object besides those provided by in mysql package:
+Besides the fields provided by in mysql package, there are two special parameters that can be used in "conf":
 
 * useTransaction
 * useCursor
 
-Only if useTransaction is provided can db.transaction be called.  Otherwise, any call to db.transaction will throw an error with message "transation-not-setup-error".  The useTransaction object is an overridding portion based upon the conf object for connection pool setup to run transactions.  For instance
+Only if "useTransaction" is provided can "db.transaction" API be called.  Otherwise, calls to "db.transaction" will throw an error with the message "transation-not-setup-error".  The "useTransaction" field itself is an configuration object that overrides the fields in "conf" to set up a connection pool for transactions.  For instance:
 
 __Example__
 
@@ -107,7 +107,7 @@ var box = new DB({
 });
 ```
 
-will allow the db object "box" to use "box.transaction" API, with a connection pool for transactions set up exactly the same way as the normal connection pool except for the transactionLimit field being overridden to 1.
+will allow the db object "box" to use "box.transaction" API, with a connection pool for transactions set up the same way as the normal connection pool except for the transactionLimit field being overridden to 1.  So in "box", there are two mysql connection pools, for normal db requests and transactional db requests.  Their connection pool setups are 
 
 
 <a name="db-connect">
