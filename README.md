@@ -93,7 +93,7 @@ Beyond the configuration fields provided by mysql package, there are two additio
 
 #### useTransaction
 
-Only if "useTransaction" is provided can "db.transaction" API be called.  Otherwise, calls to "db.transaction" will throw an error with the message "transation-not-setup-error".  The "useTransaction" field itself is an configuration object that overrides the fields in "conf" to set up a connection pool for transactions.  For instance:
+Only if "useTransaction" is provided can "[db.transaction](#db-transaction)" API be called.  Otherwise, calls to "[db.transaction](#db-transaction)" will throw an error with the message "transation-not-setup-error".  The "useTransaction" field itself is an configuration object that overrides the fields in "conf" to set up a connection pool for transactions.  For instance:
 
 __Example__
 
@@ -136,7 +136,7 @@ while the transactional connection pool's configuration is:
 
 #### useCursor
 
-Similarly to "useTransaction", only if "useCursor" is provided can "db.cursor" API be called.  Otherwise, calls to "db.cursor" will throw an exception with the error message "cursor-not-setup-error".  The field "useCursor" is very similar to the field "useTransaction", with the only difference that it is for setting up the mysql connection pool for cursors rather than transactions.  "useCursor" is also an overriding object based upon the connection pool configuration for normal connections.  For instance:
+Similarly to "useTransaction", only if "useCursor" is provided can "[db.cursor](#db-cursor)" API be called.  Otherwise, calls to "[db.cursor](#db-cursor)" will throw an exception with the error message "cursor-not-setup-error".  The field "useCursor" is very similar to the field "useTransaction", with the only difference that it is for setting up the mysql connection pool for cursors rather than transactions.  "useCursor" is also an overriding object based upon the connection pool configuration for normal connections.  For instance:
 
 __Example__
 
