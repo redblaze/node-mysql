@@ -85,7 +85,7 @@ var box = new DB({
 });
 ```
 
-Besides the fields provided by in mysql package, there are two special parameters that can be used in "conf":
+Beyond the configuration fields provided by mysql package, there are two additional configuration fields that can be used in "conf":
 
 * useTransaction
 * useCursor
