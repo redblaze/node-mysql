@@ -36,14 +36,21 @@ var box = new DB({
     host     : 'localhost',
     user     : 'root',
     password : '',
-    database : 'prod_clone'
+    database : 'workr-main-service',
+    connectionLimit: 50,
+    useTransaction: {
+        connectionLimit: 1
+    },
+    useCursor: {
+        connectionLimit: 1
+    }
 });
 
 var basicTest = function(cb) {
-    box.connect(function(conn, cb) {
+    box.transaction(null, function(conn, cb) {
         cps.seq([
             function(_, cb) {
-                conn.query('select * from users limit 1', cb);
+                conn.query('select * from user_profiles limit 1', cb);
             },
             function(res, cb) {
                 console.log(res);
@@ -59,11 +66,13 @@ var scehmaTest = function(cb) {
 
 var cursorTest = function(cb) {
     box.connect(function(boxConn, cb) {
-        var q = 'select * from coupons';
+        var q = 'select * from user_profiles';
 
         box.cursor(q, function(row, cb) {
             // boxConn.query(q, cb);
-            throw new Error('foobar');
+            // throw new Error('foobar');
+            console.log(row);
+            cb();
         }, function(err, res) {
             if (err) {
                 console.log(err);
@@ -123,4 +132,12 @@ var modelTest = function(cb) {
     }, cb);
 };
 
-modelTest(cb);
+cps.rescue({
+    'try': function(cb) {
+        cursorTest(cb);
+    },
+    'catch': function(err, cb) {
+        console.log('cps exception caught');
+        throw err;
+    }
+}, cb);
