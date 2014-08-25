@@ -107,7 +107,31 @@ var box = new DB({
 });
 ```
 
-will allow the db object "box" to use "box.transaction" API, with a connection pool for transactions set up the same way as the normal connection pool except for the transactionLimit field being overridden to 1.  So in "box", there are two mysql connection pools, for normal db requests and transactional db requests.  Their connection pool setups are 
+will allow the db object "box" to use "box.transaction" API, with a connection pool for transactions set up the same way as the normal connection pool except for the transactionLimit field being overridden to 1.  So in "box", there are two mysql connection pools, for normal db requests and transactional db requests, repectively.  The normal connection pool's configuration is: 
+
+```javascript
+var box = new DB({
+    host     : 'localhost',
+    user     : 'root',
+    password : '',
+    database : 'prod_clone',
+    transactionLimit: 50
+});
+```
+
+while the transactional connection pool's configuration is:
+
+```javascript
+var box = new DB({
+    host     : 'localhost',
+    user     : 'root',
+    password : '',
+    database : 'prod_clone',
+    transactionLimit: 1
+});
+```
+
+
 
 
 <a name="db-connect">
