@@ -103,14 +103,14 @@ var box = new DB({
     user     : 'root',
     password : '',
     database : 'prod_clone',
-    transactionLimit: 50,
+    connectionLimit: 50,
     useTransaction: {
-        transactionLimit: 1
+        connectionLimit: 1
     }
 });
 ```
 
-will allow the db object "box" to use "box.transaction" API, with a connection pool for transactions set up the same way as the normal connection pool except for the transactionLimit field being overridden to 1.  So in "box", there are two mysql connection pools, for normal db requests and transactional db requests, repectively.  The normal connection pool's configuration is: 
+will allow the db object "box" to use "box.transaction" API, with a connection pool for transactions set up the same way as the normal connection pool except for the connectionLimit field being overridden to 1.  So in "box", there are two mysql connection pools, for normal db requests and transactional db requests, repectively.  The normal connection pool's configuration is: 
 
 ```javascript
 {
@@ -118,7 +118,7 @@ will allow the db object "box" to use "box.transaction" API, with a connection p
     user     : 'root',
     password : '',
     database : 'prod_clone',
-    transactionLimit: 50
+    connectionLimit: 50
 }
 ```
 
@@ -130,7 +130,7 @@ while the transactional connection pool's configuration is:
     user     : 'root',
     password : '',
     database : 'prod_clone',
-    transactionLimit: 1
+    connectionLimit: 1
 }
 ```
 
@@ -146,14 +146,14 @@ var box = new DB({
     user     : 'root',
     password : '',
     database : 'prod_clone',
-    transactionLimit: 50,
+    connectionLimit: 50,
     useCursor: {
-        transactionLimit: 1
+        connectionLimit: 1
     }
 });
 ```
 
-will allow the API "box.cursor" to be called, with a connection pool for cursors set up the same way as the normal connection pool except for the transactionLimit field being overridden to 1.  So in "box", there are two mysql connection pools, for normal db requests and cursor db requests, repectively.  The normal connection pool's configuration is: 
+will allow the API "box.cursor" to be called, with a connection pool for cursors set up the same way as the normal connection pool except for the connectionLimit field being overridden to 1.  So in "box", there are two mysql connection pools, for normal db requests and cursor db requests, repectively.  The normal connection pool's configuration is: 
 
 ```javascript
 {
@@ -161,7 +161,7 @@ will allow the API "box.cursor" to be called, with a connection pool for cursors
     user     : 'root',
     password : '',
     database : 'prod_clone',
-    transactionLimit: 50
+    connectionLimit: 50
 }
 ```
 
@@ -173,7 +173,7 @@ while the cursor connection pool's configuration is:
     user     : 'root',
     password : '',
     database : 'prod_clone',
-    transactionLimit: 1
+    connectionLimit: 1
 }
 ```
 
@@ -189,12 +189,12 @@ var box = new DB({
     user     : 'root',
     password : '',
     database : 'prod_clone',
-    transactionLimit: 50,
+    connectionLimit: 50,
     useTransaction: {
-        transactionLimit: 20
+        connectionLimit: 20
     },
     useCursor: {
-        transactionLimit: 1
+        connectionLimit: 1
     }
 });
 ```
@@ -207,7 +207,7 @@ This will allow all of the three APIs, "box.connect", "box.transaction" and "box
     user     : 'root',
     password : '',
     database : 'prod_clone',
-    transactionLimit: 50
+    connectionLimit: 50
 }
 ```
 
@@ -219,7 +219,7 @@ the transactional connection pool is configured as:
     user     : 'root',
     password : '',
     database : 'prod_clone',
-    transactionLimit: 20
+    connectionLimit: 20
 }
 ```
 
@@ -231,7 +231,7 @@ and the cursor connection pool is configured as:
     user     : 'root',
     password : '',
     database : 'prod_clone',
-    transactionLimit: 1
+    connectionLimit: 1
 }
 ```
 
