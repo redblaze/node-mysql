@@ -1,8 +1,8 @@
 # node-mysql
 
-[![view on npm](http://img.shields.io/npm/v/operations-orchestration-crontab.svg)](https://www.npmjs.org/package/node-mysql)
-[![view on npm](http://img.shields.io/npm/l/operations-orchestration-crontab.svg)](https://www.npmjs.org/package/operations/node-mysql)
-[![npm module downloads](http://img.shields.io/npm/dt/operations-orchestration-crontab.svg)](https://www.npmjs.org/package/node-mysql)
+[![view on npm](http://img.shields.io/npm/v/node-mysql.svg)](https://www.npmjs.org/package/node-mysql)
+[![view on npm](http://img.shields.io/npm/l/node-mysql.svg)](https://www.npmjs.org/package/node-mysql)
+[![npm module downloads](http://img.shields.io/npm/dt/node-mysql.svg)](https://www.npmjs.org/package/node-mysql)
 [![Dependencies Status](https://david-dm.org/redblaze/node-mysql.svg)](https://david-dm.org/redblaze/node-mysql)
 
 An enhancement to the mysql lib to make it a bit easier to use.  Based on the existing funtionalities of (npm) mysql, it also
