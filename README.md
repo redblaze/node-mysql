@@ -657,7 +657,7 @@ In the input data object, please do NOT specify the following fields:
 
 * primary ID
 * date_created
-* last_udpated
+* last_updated
 * version
 
 All of the these fields will be filled by the invocation to table.create.
@@ -675,7 +675,7 @@ data_object:
 
 * primary ID
 * date_created
-* last_udpated
+* last_updated
 * version
 
 This API can be useful when one attempts to clone a row in a table
